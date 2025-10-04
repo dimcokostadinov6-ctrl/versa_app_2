@@ -7,7 +7,7 @@ source.include_exts = py,kv,png,jpg,ttf,zip,txt,md,db
 version = 0.4
 
 requirements = python3,kivy,pyjnius,pillow,plyer
-orientation = all
+orientation = sensor
 fullscreen = 0
 android.archs = arm64-v8a, armeabi-v7a
 android.api = 33
