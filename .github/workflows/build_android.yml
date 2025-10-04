@@ -30,7 +30,8 @@ jobs:
 
       # защитен фикс, ако случайно в spec е друго
       - name: Patch buildozer.spec (orientation)
-        run: sed -i 's/^orientation = .*/orientation = all/' buildozer.spec
+        run: sed -i 's/^orientation = .*/orientation = landscape/' buildozer.spec
+
 
       - name: Build APK (debug)
         run: buildozer android debug
