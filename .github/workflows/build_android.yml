@@ -8,14 +8,13 @@ on:
       - 'buildozer.spec'
       - '.github/workflows/build_android.yml'
 
-
 jobs:
   build:
     runs-on: ubuntu-22.04
 
     env:
-      ANDROID_SDK_ROOT: ${{ runner.temp }}/android-sdk
-      ANDROID_HOME: ${{ runner.temp }}/android-sdk
+      ANDROID_SDK_ROOT: /home/runner/android-sdk
+      ANDROID_HOME: /home/runner/android-sdk
 
     steps:
       - name: Checkout
@@ -25,30 +24,27 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: "17"
+          java-version: '17'
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.10"
+          python-version: '3.10'
 
       - name: Install system deps
         run: |
           sudo apt-get update
           sudo apt-get install -y git zip unzip python3-dev libffi-dev libssl-dev \
-                                  liblzma-dev libjpeg-dev libfreetype6-dev zlib1g-dev
+                                  liblzma-dev libjpeg-dev libfreetype6-dev zlib1g-dev curl
 
-      # --- НОВО: Android SDK + build-tools (за aidl) ---
-      - name: Install Android SDK (cmdline-tools) and build-tools
+      - name: Install Android SDK + build-tools + NDK
         run: |
           set -eux
           mkdir -p "$ANDROID_SDK_ROOT/cmdline-tools"
           curl -fsSL https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -o /tmp/cmdtools.zip
           unzip -q /tmp/cmdtools.zip -d "$ANDROID_SDK_ROOT/cmdline-tools"
           mv "$ANDROID_SDK_ROOT/cmdline-tools/cmdline-tools" "$ANDROID_SDK_ROOT/cmdline-tools/latest"
-
           export PATH="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_SDK_ROOT/platform-tools:$PATH"
-
           yes | sdkmanager --licenses
           sdkmanager "platform-tools" "platforms;android-33" "build-tools;33.0.2" "ndk;25.2.9519653"
 
@@ -58,17 +54,14 @@ jobs:
           pip install --user cython==0.29.36 buildozer
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
-      # ако си оставил предишния ред с 'all', гарантирано го фиксираме на landscape
       - name: Ensure orientation = landscape
         run: sed -i 's/^orientation *= *.*/orientation = landscape/' buildozer.spec
 
-      # Кажи на Buildozer да ползва вече инсталирания SDK/NDK
       - name: Build APK (debug)
         env:
-          ANDROIDSDK: ${{ env.ANDROID_SDK_ROOT }}
-          ANDROIDNDK: ${{ env.ANDROID_SDK_ROOT }}/ndk/25.2.9519653
-        run: |
-          buildozer android debug
+          ANDROIDSDK: /home/runner/android-sdk
+          ANDROIDNDK: /home/runner/android-sdk/ndk/25.2.9519653
+        run: buildozer android debug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
