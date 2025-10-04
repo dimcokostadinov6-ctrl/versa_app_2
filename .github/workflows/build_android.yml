@@ -1,6 +1,13 @@
 name: Build Android APK
 on:
   workflow_dispatch:
+  push:
+    branches: [ main ]
+    paths:
+      - '**.py'
+      - 'buildozer.spec'
+      - '.github/workflows/build_android.yml'
+
 
 jobs:
   build:
