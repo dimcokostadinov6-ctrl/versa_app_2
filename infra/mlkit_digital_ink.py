@@ -17,8 +17,7 @@ DownloadConditions = autoclass('com.google.mlkit.common.model.DownloadConditions
 Tasks = autoclass('com.google.android.gms.tasks.Tasks')
 
 def _await_task(task):
-    return Tasks.await(task)
-
+    return getattr(Tasks, "await")(task)
 class MLKitDigitalInkOCR(IOCR):
     """
     Google ML Kit Digital Ink (on-device).
