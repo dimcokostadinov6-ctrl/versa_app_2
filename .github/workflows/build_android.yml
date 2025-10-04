@@ -1,0 +1,42 @@
+name: Build Android APK
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install system deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y git zip unzip openjdk-17-jdk python3-dev \
+                                  libffi-dev libssl-dev liblzma-dev libjpeg-dev \
+                                  libfreetype6-dev zlib1g-dev
+
+      - name: Install buildozer
+        run: |
+          python -m pip install --upgrade pip
+          pip install --user cython==0.29.36 buildozer
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      # защитен фикс, ако случайно в spec е друго
+      - name: Patch buildozer.spec (orientation)
+        run: sed -i 's/^orientation = .*/orientation = all/' buildozer.spec
+
+      - name: Build APK (debug)
+        run: buildozer android debug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: veresia-app-debug
+          path: bin/*.apk
