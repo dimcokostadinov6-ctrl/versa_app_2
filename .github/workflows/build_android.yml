@@ -16,16 +16,34 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-
       - name: Build with Docker image (kivy/buildozer)
         run: |
           docker pull kivy/buildozer:latest
           docker run --rm \
-          -v "$PWD":/home/user/buildozer \
-          -w /home/user/buildozer \
-          kivy/buildozer:latest \
-          buildozer -v android debug
+            -v "$PWD":/home/user/buildozer \
+            -w /home/user/buildozer \
+            kivy/buildozer:latest \
+            buildozer -v android debug
 
+      - name: Save build output
+        if: always()
+        run: |
+          if [ -f buildozer.log ]; then cp buildozer.log build_output.log; fi
+          mkdir -p logs
+          if [ -d .buildozer ]; then
+            find .buildozer -type f -name "*.log" -o -name "log.txt" -o -name "buildozer.log" > logs/list.txt || true
+            tar -czf build_logs.tgz --files-from=logs/list.txt || true
+          fi
+
+      - name: Upload Logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs
+          path: |
+            build_output.log
+            buildozer.log
+            build_logs.tgz
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
