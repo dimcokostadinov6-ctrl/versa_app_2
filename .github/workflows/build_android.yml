@@ -43,23 +43,37 @@ jobs:
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Put SDK tools in PATH
-        run: |
-          echo "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin" >> $GITHUB_PATH || true
-          echo "$ANDROID_HOME/cmdline-tools/latest/bin"  >> $GITHUB_PATH || true
-          echo "$ANDROID_SDK_ROOT/platform-tools"        >> $GITHUB_PATH || true
-          echo "$ANDROID_HOME/platform-tools"            >> $GITHUB_PATH || true
-
-      - name: Accept licenses & install packages
+      - name: Accept licenses & install Android packages
         run: |
           yes | sdkmanager --licenses
-          sdkmanager "platforms;android-33" "build-tools;33.0.2" "platform-tools" "ndk;25.2.9519653"
+          sdkmanager \
+            "platforms;android-33" \
+            "build-tools;33.0.2" \
+            "build-tools;34.0.0" \
+            "platform-tools" \
+            "ndk;25.2.9519653"
           echo "ANDROID_NDK_HOME=$ANDROID_SDK_ROOT/ndk/25.2.9519653" >> $GITHUB_ENV
           echo "$ANDROID_SDK_ROOT/build-tools/33.0.2" >> $GITHUB_PATH
+          echo "$ANDROID_SDK_ROOT/build-tools/34.0.0" >> $GITHUB_PATH
+          echo "$ANDROID_SDK_ROOT/platform-tools"     >> $GITHUB_PATH
+          echo "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin" >> $GITHUB_PATH
+
+      - name: Point Buildozer to system SDK/NDK
+        run: |
+          echo "ANDROIDSDK=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
+          echo "ANDROIDNDK=$ANDROID_NDK_HOME" >> $GITHUB_ENV
+          # (по избор) подсигуряваме и чрез symlink-ове към .buildozer
+          mkdir -p .buildozer/android/platform
+          ln -sfn "$ANDROID_SDK_ROOT" .buildozer/android/platform/android-sdk
+          ln -sfn "$ANDROID_NDK_HOME" .buildozer/android/platform/android-ndk
 
       - name: Build APK (debug)
         env:
           PYTHONUNBUFFERED: "1"
+          ANDROIDSDK: ${{ env.ANDROIDSDK }}
+          ANDROIDNDK: ${{ env.ANDROIDNDK }}
+          ANDROID_HOME: ${{ env.ANDROID_SDK_ROOT }}
+          ANDROID_SDK_ROOT: ${{ env.ANDROID_SDK_ROOT }}
         run: |
           buildozer -v android debug || {
             echo "=== tail buildozer.log ==="
