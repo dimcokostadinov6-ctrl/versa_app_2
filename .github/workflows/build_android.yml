@@ -30,7 +30,7 @@ jobs:
           python3 -m pip install -U pip
           pip install buildozer==1.5.0 cython==0.29.36
 
-      # 👉 Това слага cmdline-tools/sdkmanager ПРАВИЛНО (без curl)
+      # Инсталира коректно cmdline-tools/sdkmanager (без ръчни zip-ове)
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
 
@@ -43,7 +43,11 @@ jobs:
       - name: Build APK
         env:
           ANDROID_SDK_ROOT: "${{ env.ANDROID_SDK_ROOT }}"
+          ANDROID_HOME: "${{ env.ANDROID_SDK_ROOT }}"
           ANDROID_NDK_HOME: "${{ env.ANDROID_NDK_HOME }}"
+          # python-for-android уважава точно тези две:
+          ANDROIDSDK: "${{ env.ANDROID_SDK_ROOT }}"
+          ANDROIDNDK: "${{ env.ANDROID_NDK_HOME }}"
         run: |
           set -e
           export PATH="$JAVA_HOME/bin:$ANDROID_SDK_ROOT/build-tools/33.0.2:$ANDROID_SDK_ROOT/platform-tools:$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$PATH"
@@ -53,21 +57,31 @@ jobs:
           which sdkmanager || true
           which aidl || true
 
-          # Насочи .buildozer към системния SDK/NDK
+          # 0) Почисти вътрешните кешове на Buildozer
+          buildozer android clean || true
+
+          # 1) Принудително насочи вътрешния .buildozer към системния SDK/NDK
           mkdir -p .buildozer/android/platform
           rm -rf .buildozer/android/platform/android-sdk || true
           rm -rf .buildozer/android/platform/android-ndk || true
           ln -sfn "$ANDROID_SDK_ROOT" .buildozer/android/platform/android-sdk
           ln -sfn "$ANDROID_NDK_HOME" .buildozer/android/platform/android-ndk
 
-          # (за всеки случай) копие на aidl вътре, ако buildozer го търси там
+          # 2) Увери се, че build-tools/aidl съществува там, където buildozer го търси
           mkdir -p .buildozer/android/platform/android-sdk/build-tools
-          cp "$ANDROID_SDK_ROOT/build-tools/33.0.2/aidl" .buildozer/android/platform/android-sdk/build-tools/aidl || true
-          chmod +x .buildozer/android/platform/android-sdk/build-tools/aidl || true
+          if [ -f "$ANDROID_SDK_ROOT/build-tools/33.0.2/aidl" ]; then
+            cp "$ANDROID_SDK_ROOT/build-tools/33.0.2/aidl" .buildozer/android/platform/android-sdk/build-tools/aidl
+            chmod +x .buildozer/android/platform/android-sdk/build-tools/aidl
+          fi
 
+          echo "== Debug listing =="
+          ls -la .buildozer/android/platform/android-sdk || true
+          ls -la .buildozer/android/platform/android-sdk/build-tools || true
+
+          # 3) Истинският билд
           buildozer -v android debug || {
             echo "=== tail buildozer.log ==="
-            [ -f buildozer.log ] && tail -n 200 buildozer.log || true
+            [ -f buildozer.log ] && tail -n 300 buildozer.log || true
             exit 1
           }
 
