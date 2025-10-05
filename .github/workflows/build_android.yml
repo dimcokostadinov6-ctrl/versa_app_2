@@ -49,9 +49,9 @@ jobs:
           sdkmanager \
             "platforms;android-33" \
             "build-tools;33.0.2" \
-            "build-tools;34.0.0" \
             "platform-tools" \
             "ndk;25.2.9519653"
+
           echo "ANDROID_NDK_HOME=$ANDROID_SDK_ROOT/ndk/25.2.9519653" >> $GITHUB_ENV
 
       - name: Build APK (debug)
@@ -61,25 +61,25 @@ jobs:
           ANDROID_HOME: ${{ env.ANDROID_SDK_ROOT }}
           ANDROID_NDK_HOME: ${{ env.ANDROID_NDK_HOME }}
         run: |
-          # Използвай системния SDK/NDK
-          export ANDROIDSDK="$ANDROID_SDK_ROOT"
-          export ANDROIDNDK="$ANDROID_NDK_HOME"
-
-          # PATH за aidl
+          # Добавяме build-tools (aidl) в PATH
           export PATH="$ANDROID_SDK_ROOT/build-tools/33.0.2:$ANDROID_SDK_ROOT/platform-tools:$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$PATH"
 
-          # Подготви .buildozer да сочи към системния SDK/NDK
-          mkdir -p .buildozer/android/platform
-          rm -rf .buildozer/android/platform/android-sdk || true
-          rm -rf .buildozer/android/platform/android-ndk  || true
-          ln -s "$ANDROID_SDK_ROOT" .buildozer/android/platform/android-sdk
-          ln -s "$ANDROID_NDK_HOME" .buildozer/android/platform/android-ndk
-
-          # Диагностика
+          # Увери се, че aidl съществува
+          echo "===> Проверка за aidl:"
           which aidl || true
           ls -l "$ANDROID_SDK_ROOT/build-tools/33.0.2/aidl" || true
 
-          # Билд
+          # Подготви .buildozer/android/platform
+          mkdir -p .buildozer/android/platform
+          ln -sfn "$ANDROID_SDK_ROOT" .buildozer/android/platform/android-sdk
+          ln -sfn "$ANDROID_NDK_HOME" .buildozer/android/platform/android-ndk
+
+          # Копирай aidl вътре, за да не се оплаква Buildozer
+          mkdir -p .buildozer/android/platform/android-sdk/build-tools
+          cp "$ANDROID_SDK_ROOT/build-tools/33.0.2/aidl" .buildozer/android/platform/android-sdk/build-tools/aidl || true
+          chmod +x .buildozer/android/platform/android-sdk/build-tools/aidl
+
+          # Стартирай билд
           buildozer -v android debug || {
             echo "=== tail buildozer.log ==="
             [ -f buildozer.log ] && tail -n 200 buildozer.log || true
