@@ -18,17 +18,21 @@ log_level = 2
 [buildozer]
 log_level = 2
 warn_on_root = 0
+ignore_build_tools = 1
 
 [python]
 android_runnable = 1
 
 [android]
+# Използвай съществуващия SDK (от runner-а)
+sdk_dir = /usr/local/lib/android/sdk
+ndk_dir = /usr/local/lib/android/sdk/ndk/25.2.9519653
+android.sdk_path = /usr/local/lib/android/sdk
+android.ndk_path = /usr/local/lib/android/sdk/ndk/25.2.9519653
+
+# Фиксирани API и инструменти
 android.api = 33
 android.minapi = 21
 android.ndk_api = 21
 android.build_tools_version = 33.0.2
-sdk_dir = $ANDROID_SDK_ROOT
-ndk_dir = $ANDROID_NDK_HOME
-android.sdk_path = $ANDROID_SDK_ROOT
-android.ndk_path = $ANDROID_NDK_HOME
 android.accept_sdk_license = True
