@@ -40,25 +40,22 @@ jobs:
           python -m pip install -U pip
           pip install "buildozer==1.5.0" "cython==0.29.36"
 
-      - name: Install Android SDK cmdline-tools
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Put SDK tools in PATH
         run: |
-          SDK="$HOME/android-sdk"
-          mkdir -p "$SDK/cmdline-tools"
-          cd "$SDK/cmdline-tools"
-          curl -sSLo tools.zip "https://dl.google.com/android/repository/commandlinetools-linux-11076768_latest.zip"
-          unzip -q tools.zip
-          mv cmdline-tools latest
-          echo "ANDROID_SDK_ROOT=$SDK" >> $GITHUB_ENV
-          echo "ANDROID_HOME=$SDK" >> $GITHUB_ENV
-          echo "$SDK/cmdline-tools/latest/bin" >> $GITHUB_PATH
-          echo "$SDK/platform-tools" >> $GITHUB_PATH
+          echo "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin" >> $GITHUB_PATH || true
+          echo "$ANDROID_HOME/cmdline-tools/latest/bin"  >> $GITHUB_PATH || true
+          echo "$ANDROID_SDK_ROOT/platform-tools"        >> $GITHUB_PATH || true
+          echo "$ANDROID_HOME/platform-tools"            >> $GITHUB_PATH || true
 
       - name: Accept licenses & install packages
         run: |
           yes | sdkmanager --licenses
           sdkmanager "platforms;android-33" "build-tools;33.0.2" "platform-tools" "ndk;25.2.9519653"
-          echo "$ANDROID_SDK_ROOT/build-tools/33.0.2" >> $GITHUB_PATH
           echo "ANDROID_NDK_HOME=$ANDROID_SDK_ROOT/ndk/25.2.9519653" >> $GITHUB_ENV
+          echo "$ANDROID_SDK_ROOT/build-tools/33.0.2" >> $GITHUB_PATH
 
       - name: Build APK (debug)
         env:
