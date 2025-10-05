@@ -16,20 +16,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-
-      - name: Build with Buildozer
-        uses: ArtemSBulgakov/buildozer-action@v1.2.0
-        id: buildozer
-        env:
-          USER: root
-        with:
-          workdir: .
-          buildozer_version: stable
-          command: buildozer android debug
-
+      - name: Build with Docker image (kivy/buildozer)
+        run: |
+          docker run --rm \
+            -v "$PWD":/home/user/buildozer \
+            -w /home/user/buildozer \
+            ghcr.io/kivy/buildozer:stable \
+            buildozer -v android debug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: veresia-app-debug
-          path: ${{ steps.buildozer.outputs.filename }}
+          path: bin/*.apk
