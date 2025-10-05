@@ -4,10 +4,6 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
-    paths:
-      - "**/*.py"
-      - "buildozer.spec"
-      - ".github/workflows/build_android.yml"
 
 jobs:
   build:
@@ -17,84 +13,69 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Java 17
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: "17"
-
-      - name: Set up Python 3.10
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.10"
-
       - name: Install system deps
         run: |
           sudo apt-get update -y
-          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
-            build-essential zlib1g-dev libncurses5 libtinfo5 libffi-dev \
-            libssl-dev liblzma-dev libbz2-dev libreadline-dev unzip zip curl
+          sudo apt-get install -y \
+            build-essential python3-pip zip unzip openjdk-17-jdk git curl
 
-      - name: Install buildozer & cython
+      - name: Install buildozer
         run: |
-          python -m pip install -U pip
-          pip install "buildozer==1.5.0" "cython==0.29.36"
+          python3 -m pip install -U pip
+          pip install buildozer==1.5.0 cython==0.29.36
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Accept licenses & install Android packages
+      - name: Set up Android SDK & NDK manually
         run: |
+          mkdir -p $HOME/android
+          cd $HOME/android
+
+          # SDK
+          curl -o sdk-tools.zip https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
+          unzip -q sdk-tools.zip -d cmdline-tools
+          mkdir -p cmdline-tools/latest
+          mv cmdline-tools/cmdline-tools/* cmdline-tools/latest/ || true
+
+          export ANDROID_SDK_ROOT=$HOME/android
+          export PATH=$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$PATH
+
           yes | sdkmanager --licenses
-          sdkmanager "platforms;android-33" "build-tools;33.0.2" "platform-tools" "ndk;25.2.9519653"
-          echo "ANDROID_NDK_HOME=$ANDROID_SDK_ROOT/ndk/25.2.9519653" >> $GITHUB_ENV
+          sdkmanager --install \
+            "platform-tools" \
+            "platforms;android-33" \
+            "build-tools;33.0.2" \
+            "ndk;25.2.9519653"
 
-      - name: Build APK (debug)
+          echo "ANDROID_SDK_ROOT=$HOME/android" >> $GITHUB_ENV
+          echo "ANDROID_NDK_HOME=$HOME/android/ndk/25.2.9519653" >> $GITHUB_ENV
+
+      - name: Build APK
         env:
-          PYTHONUNBUFFERED: "1"
           ANDROID_SDK_ROOT: "${{ env.ANDROID_SDK_ROOT }}"
-          ANDROID_HOME: "${{ env.ANDROID_SDK_ROOT }}"
           ANDROID_NDK_HOME: "${{ env.ANDROID_NDK_HOME }}"
         run: |
-          # PATH за aidl и инструменти
-          export PATH="$ANDROID_SDK_ROOT/build-tools/33.0.2:$ANDROID_SDK_ROOT/platform-tools:$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$PATH"
+          export PATH=$ANDROID_SDK_ROOT/build-tools/33.0.2:$ANDROID_SDK_ROOT/platform-tools:$PATH
 
           echo "== SDK = $ANDROID_SDK_ROOT"
           echo "== NDK = $ANDROID_NDK_HOME"
           which aidl || true
-          ls -l "$ANDROID_SDK_ROOT/build-tools/33.0.2/aidl" || true
 
-          # 1) Инициализирай структурата на .buildozer
-          buildozer android clean || true
-
-          # 2) Пренасочи вътрешния SDK/NDK на Buildozer към системните
+          # Принудително пренасочване на Buildozer да използва нашия SDK/NDK
           mkdir -p .buildozer/android/platform
           rm -rf .buildozer/android/platform/android-sdk || true
           rm -rf .buildozer/android/platform/android-ndk || true
           ln -sfn "$ANDROID_SDK_ROOT" .buildozer/android/platform/android-sdk
           ln -sfn "$ANDROID_NDK_HOME" .buildozer/android/platform/android-ndk
 
-          # (допълнително) сложи aidl и вътре, ако Buildozer го търси там
+          # Копирай aidl ръчно (ако Buildozer го иска)
           mkdir -p .buildozer/android/platform/android-sdk/build-tools
           cp "$ANDROID_SDK_ROOT/build-tools/33.0.2/aidl" .buildozer/android/platform/android-sdk/build-tools/aidl || true
           chmod +x .buildozer/android/platform/android-sdk/build-tools/aidl || true
 
-          # 3) Истинският билд
-          buildozer -v android debug || {
+          buildozer android debug || {
             echo "=== tail buildozer.log ==="
             [ -f buildozer.log ] && tail -n 200 buildozer.log || true
             exit 1
           }
-
-      - name: Save build logs
-        if: always()
-        run: |
-          [ -f buildozer.log ] && cp buildozer.log build_output.log || true
-          mkdir -p logs
-          if [ -d .buildozer ]; then
-            find .buildozer -type f -name "*.log" -o -name "log.txt" -o -name "buildozer.log" > logs/list.txt || true
-            tar -czf build_logs.tgz --files-from=logs/list.txt || true
-          fi
 
       - name: Upload Logs
         if: always()
@@ -102,9 +83,8 @@ jobs:
         with:
           name: build-logs
           path: |
-            build_output.log
             buildozer.log
-            build_logs.tgz
+            .buildozer/android/platform/android-sdk/build-tools/aidl
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
