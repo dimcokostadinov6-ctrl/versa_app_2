@@ -31,32 +31,4 @@ jobs:
       - name: Install system deps
         run: |
           sudo apt-get update -y
-          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
-            build-essential zlib1g-dev libncurses5 libtinfo5 libffi-dev \
-            libssl-dev liblzma-dev libbz2-dev libreadline-dev unzip zip curl
-
-      - name: Install buildozer & cython
-        run: |
-          python -m pip install -U pip
-          pip install "buildozer==1.5.0" "cython==0.29.36"
-
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Accept licenses & install Android packages
-        run: |
-          yes | sdkmanager --licenses
-          sdkmanager \
-            "platforms;android-33" \
-            "build-tools;33.0.2" \
-            "platform-tools" \
-            "ndk;25.2.9519653"
-
-          echo "ANDROID_NDK_HOME=$ANDROID_SDK_ROOT/ndk/25.2.9519653" >> $GITHUB_ENV
-
-      - name: Build APK (debug)
-        env:
-          PYTHONUNBUFFERED: "1"
-          ANDROID_SDK_ROOT: ${{ env.ANDROID_SDK_ROOT }}
-          ANDROID_HOME: ${{ env.ANDROID_SDK_ROOT }}
-          ANDROID_NDK_HOME: ${{ env
+          sudo DEBIAN
