@@ -16,13 +16,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+
       - name: Build with Docker image (kivy/buildozer)
         run: |
+          docker pull kivy/buildozer:latest
           docker run --rm \
-            -v "$PWD":/home/user/buildozer \
-            -w /home/user/buildozer \
-            ghcr.io/kivy/buildozer:stable \
-            buildozer -v android debug
+          -v "$PWD":/home/user/buildozer \
+          -w /home/user/buildozer \
+          kivy/buildozer:latest \
+          buildozer -v android debug
+
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
