@@ -24,15 +24,12 @@ ignore_build_tools = 1
 android_runnable = 1
 
 [android]
-# Използвай съществуващия SDK (от runner-а)
-sdk_dir = /usr/local/lib/android/sdk
-ndk_dir = /usr/local/lib/android/sdk/ndk/25.2.9519653
-android.sdk_path = /usr/local/lib/android/sdk
-android.ndk_path = /usr/local/lib/android/sdk/ndk/25.2.9519653
-
-# Фиксирани API и инструменти
 android.api = 33
 android.minapi = 21
 android.ndk_api = 21
 android.build_tools_version = 33.0.2
+sdk_dir = /usr/local/lib/android/sdk
+ndk_dir = /usr/local/lib/android/sdk/ndk/25.2.9519653
+android.sdk_path = /usr/local/lib/android/sdk
+android.ndk_path = /usr/local/lib/android/sdk/ndk/25.2.9519653
 android.accept_sdk_license = True
