@@ -61,21 +61,38 @@ jobs:
           ANDROID_HOME: ${{ env.ANDROID_SDK_ROOT }}
           ANDROID_NDK_HOME: ${{ env.ANDROID_NDK_HOME }}
         run: |
+          # Използвай системния SDK/NDK
+          export ANDROIDSDK="$ANDROID_SDK_ROOT"
+          export ANDROIDNDK="$ANDROID_NDK_HOME"
+
+          # PATH за aidl
           export PATH="$ANDROID_SDK_ROOT/build-tools/33.0.2:$ANDROID_SDK_ROOT/platform-tools:$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$PATH"
+
+          # Подготви .buildozer да сочи към системния SDK/NDK
+          mkdir -p .buildozer/android/platform
+          rm -rf .buildozer/android/platform/android-sdk || true
+          rm -rf .buildozer/android/platform/android-ndk  || true
+          ln -s "$ANDROID_SDK_ROOT" .buildozer/android/platform/android-sdk
+          ln -s "$ANDROID_NDK_HOME" .buildozer/android/platform/android-ndk
+
+          # Диагностика
           which aidl || true
+          ls -l "$ANDROID_SDK_ROOT/build-tools/33.0.2/aidl" || true
+
+          # Билд
           buildozer -v android debug || {
             echo "=== tail buildozer.log ==="
-            tail -n 200 buildozer.log || true
+            [ -f buildozer.log ] && tail -n 200 buildozer.log || true
             exit 1
           }
 
       - name: Save build logs
         if: always()
         run: |
-          if [ -f buildozer.log ]; then cp buildozer.log build_output.log; fi
+          [ -f buildozer.log ] && cp buildozer.log build_output.log || true
           mkdir -p logs
           if [ -d .buildozer ]; then
-            find .buildozer -type f -name "*.log" -o -name "log.txt" -о -name "buildozer.log" > logs/list.txt || true
+            find .buildozer -type f -name "*.log" -o -name "log.txt" -o -name "buildozer.log" > logs/list.txt || true
             tar -czf build_logs.tgz --files-from=logs/list.txt || true
           fi
 
